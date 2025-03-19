@@ -6,9 +6,9 @@
                   # last updated: July 2023 #
 
 ### INFO =======================================================================
-#    This is a self-contained project to generate a ranked random sample of...
+#    This is a custom function to generate a ranked random sample of...
 # ...legal land sections or quarter sections in Alberta, Saskatchewan or...
-#....Manitoba with point count locations 400 m apart.
+#....Manitoba and establish point count locations in 4x4 grids spaced 400 m apart.
 
 
 
@@ -34,9 +34,6 @@
 
 
 ### FUNCTION ===================================================================
-
-
-### run this line: 
 grts_GBMP <- function(site_name, 
                       site_name_2 = NULL, 
                       site_ID, 
@@ -95,6 +92,8 @@ grts_GBMP <- function(site_name,
   # site <- st_read("./data/boundaries/test.shp")
 
     ##some sites have boundary files that have multiple polygons that need to be grouped together
+  #***BRobinson March 18,2025: I think below is just trying to dissolve polygons, but need to test. If so, this can be done
+  #*simply with terra:aggregate()
   site$name <- "site_name"
   site <- site %>% group_by(name) %>% dplyr::summarise()
   
@@ -122,8 +121,10 @@ grts_GBMP <- function(site_name,
   #transform site to correct crs. crs of other objects will be based off site crs
   site <- st_transform(site, crs = epsg)
   
-  #if there is a second shapefile
+  #***BRobinson March 18, 2025: Function would be more universal if you had the option of entering a single 
+  #*shapefile or a list of >=2 shapefiles under a single "site_name" argument.
   
+  #if there is a second shapefile
   if(is.null(site_name_2) == FALSE) {
     site_2 <- st_read(dsn = "./data/boundaries", layer = site_name_2)
     site_2 <- st_transform(site_2, crs = st_crs(site))
