@@ -17,9 +17,9 @@
 shapefile = "HandHillER"
 shapefile = "AndersonNorthLease"
 shapefile = "dundurn"
+shapefile = list("AndersonNorthLease", "AndersonSouthLease")
 site_ID = "AHHL"
-grts_GBMP <- function(shapefile, 
-                      site_name_2 = NULL, 
+grts_GBMP <- function(shapefile,
                       site_ID, 
                       pcode, 
                       sample_size = NULL, 
@@ -54,12 +54,17 @@ grts_GBMP <- function(shapefile,
   #switch off spherical geometry
   sf_use_s2(FALSE)
   
-  #load in site shapefile
-  site <- st_read(dsn = "./Data/Boundaries", layer = shapefile)
-
+  #load in site shapefile, if a list of shapefiles is provided, combine
+  if(is.list(shapefile)) {
+    site <- lapply(shapefile, function(x) {return(st_read(dsn = "./Data/Boundaries", layer = x))})
+    site <- do.call("bind_rows", site)
+  } else {
+    site <- st_read(dsn = "./Data/Boundaries", layer = shapefile)
+  }
+  
   #some sites have boundary files that have multiple polygons that need to be grouped together
   #This step also simplifies the attribute table to have only 1 field: site name
-  site$name <- shapefile
+  site$name <- site_ID
   site <- site %>% group_by(name) %>% dplyr::summarise()
   
   
@@ -92,18 +97,6 @@ grts_GBMP <- function(shapefile,
     site <- st_transform(site, crs = epsg)
   }
   
-  
-  #***BRobinson March 18, 2025: Function would be more universal if you had the option of entering a single 
-  #*shapefile or a list of >=2 shapefiles under a single "site_name" argument.
-  
-  #if there is a second shapefile
-  if(!is.null(site_name_2)) {
-    site_2 <- st_read(dsn = "./Data/Boundaries", layer = site_name_2)
-    site_2 <- st_transform(site_2, crs = st_crs(site))
-    site <- bind_rows(site, site_2)
-  }
-  
-  
   ##BRobinson April 24: Moved this to the end to ensure everything is exported in same projection
   
   # #export site boundary gpkg for later map use
@@ -116,7 +109,7 @@ grts_GBMP <- function(shapefile,
   
 
 ##### GET PROVINCE GRID FOR SITE ===============================================
-    
+  
   
   # load in Canada province data, filter only prairie region provinces
   provinces <- c("Alberta", "Manitoba", "Saskatchewan")
