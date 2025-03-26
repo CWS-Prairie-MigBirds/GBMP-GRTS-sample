@@ -114,7 +114,13 @@ grts_GBMP <- function(shapefile,
   # load in Canada province data, filter only prairie region provinces
   provinces <- c("Alberta", "Manitoba", "Saskatchewan")
   
-  can <- gadm(country="CAN", level=1, path="./Data")
+  #check if Canada shapefile exists before downloading
+  if(!file.exists("Data/gadm/gadm41_CAN_1_pk.rds")) {
+    can <- gadm(country="CAN", level=1, path="./Data")
+  } else {
+    can <- readRDS("Data/gadm/gadm41_CAN_1_pk.rds")
+  }
+  
   can <- st_as_sf(can)  
   can <- filter(can, NAME_1 %in% provinces)
 
