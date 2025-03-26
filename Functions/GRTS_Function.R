@@ -1,40 +1,22 @@
 
           ### CWS GRASSLAND BIRD MONITORING PROGRAM ###
   ### Generalized Random Tessellation Stratified (GRTS) sample ###
-
       # Barry Robinson, Janine McManus, Josiah Van Egmond #
-                  # last updated: July 2023 #
+                  # last updated: March 2025 #
 
 ### INFO =======================================================================
-#    This is a custom function to generate a ranked random sample of...
-# ...legal land sections or quarter sections in Alberta, Saskatchewan or...
-#....Manitoba and establish point count locations in 4x4 grids spaced 400 m apart.
-
-
-
-### INSTRUCTIONS
-# Move your site boundary shapefile into the data > boundaries folder
-# Run the function line
-# Input the arguments into the function at the bottom of the page:
-    # site_name: the name of the shapefile in the boundaries folder, without suffix .shp
-    # site_ID: the 4-letter site code, starting with the province letter
-    # pcode: project code
-    # sample_size: if you want to manually input number of grids, otherwise the sample size will be 20% of available grids
-    # overdraw_size: to manually input the number of overdraw grids, otherwise will be 25% of sample size
-# check the interactive map output to see that everything looks normal and there is not too much clumping
-# rerun the function if necessary
-# NOTE: delete the entire output folder before rerunning to ensure everything is properly exported
-
-
+#*This is a custom function to generate a ranked random sample oflegal land sections or quarter sections in Alberta, Saskatchewan or
+#*Manitoba and establish point count locations in 4x4 grids spaced 400 m apart.
 
 ### Functionality to be added:
     # make pretty map
     # generate sample from only legal land description
 
 
-
-### FUNCTION ===================================================================
-grts_GBMP <- function(site_name, 
+#temp input values to test function
+shapefile = "HandHillER"
+site_ID = "AHHL"
+grts_GBMP <- function(shapefile, 
                       site_name_2 = NULL, 
                       site_ID, 
                       pcode, 
@@ -42,22 +24,8 @@ grts_GBMP <- function(site_name,
                       overdraw_size = NULL)  { 
    
   
-##### LOAD PACKAGES ============================================================
-  
-  # custom function to check for and automatically load packages
-  
-  using<-function(...) {
-    libs<-unlist(list(...))
-    req<-unlist(lapply(libs,require,character.only=TRUE))
-    need<-libs[req==FALSE]
-    if(length(need)>0){ 
-      install.packages(need)
-      lapply(need,require,character.only=TRUE)
-    }
-  }
-  
-  # required packages will be automatically installed and loaded
-  
+#Load packages; required packages will be automatically installed and loaded
+  source("Functions/InstallLoadPackages.R")
   using(
     "tidyverse",
     "parallel", 
@@ -75,29 +43,22 @@ grts_GBMP <- function(site_name,
     "basemaps",
     "geodata"
   )
-  
-  
-  
-  
+ 
 ##### FILE SETUP ===============================================================
   
   #create output directory for project
-  dir.create(paste0("./output/", site_ID))
+  dir.create(paste0("./Output/", site_ID),showWarnings = F)
     
-  
+  #switch off spherical geometry
   sf_use_s2(FALSE)
   
   #load in site shapefile
-  site <- st_read(dsn = "./data/boundaries", layer = site_name)
-  # site <- st_read("./data/boundaries/test.shp")
+  site <- st_read(dsn = "./Data/Boundaries", layer = shapefile)
 
-    ##some sites have boundary files that have multiple polygons that need to be grouped together
-  #***BRobinson March 18,2025: I think below is just trying to dissolve polygons, but need to test. If so, this can be done
-  #*simply with terra:aggregate()
-  site$name <- "site_name"
-  site <- site %>% group_by(name) %>% dplyr::summarise()
-  
-  
+  ##some sites have boundary files that have multiple polygons that need to be grouped together
+  if(nrow(site) > 1){
+    site <- st_union(site)
+  }
   
 ##### SELECT CRS FOR SITE FROM LOCATION ========================================
   
@@ -125,11 +86,10 @@ grts_GBMP <- function(site_name,
   #*shapefile or a list of >=2 shapefiles under a single "site_name" argument.
   
   #if there is a second shapefile
-  if(is.null(site_name_2) == FALSE) {
-    site_2 <- st_read(dsn = "./data/boundaries", layer = site_name_2)
+  if(!is.null(site_name_2)) {
+    site_2 <- st_read(dsn = "./Data/Boundaries", layer = site_name_2)
     site_2 <- st_transform(site_2, crs = st_crs(site))
     site <- bind_rows(site, site_2)
-    
   }
   
   
@@ -835,7 +795,7 @@ grts_GBMP <- function(site_name,
 
 
 
-# site_name: enter the name of the shapefile, not including the suffix .shp
+# shapefile: enter the name of the shapefile, not including the suffix .shp
 # site_name_2: if the boundary includes another shapefile
 # site_ID: enter the four letter site code
 # pcode: project code
