@@ -18,6 +18,7 @@ shapefile = "HandHillER"
 shapefile = "AndersonNorthLease"
 shapefile = "dundurn"
 shapefile = list("AndersonNorthLease", "AndersonSouthLease")
+shapefile = "manitou"
 site_ID = "AHHL"
 grts_GBMP <- function(shapefile,
                       site_ID, 
@@ -56,10 +57,10 @@ grts_GBMP <- function(shapefile,
   
   #load in site shapefile, if a list of shapefiles is provided, combine
   if(is.list(shapefile)) {
-    site <- lapply(shapefile, function(x) {return(st_read(dsn = "./Data/Boundaries", layer = x))})
+    site <- lapply(shapefile, function(x) {return(st_read(dsn = "Data/Boundaries", layer = x))})
     site <- do.call("bind_rows", site)
   } else {
-    site <- st_read(dsn = "./Data/Boundaries", layer = shapefile)
+    site <- st_read(dsn = "Data/Boundaries", layer = shapefile)
   }
   
   #some sites have boundary files that have multiple polygons that need to be grouped together
@@ -110,17 +111,17 @@ grts_GBMP <- function(shapefile,
 
 ##### GET PROVINCE GRID FOR SITE ===============================================
   
-  
   # load in Canada province data, filter only prairie region provinces
   provinces <- c("Alberta", "Manitoba", "Saskatchewan")
   
   #check if Canada shapefile exists before downloading
   if(!file.exists("Data/gadm/gadm41_CAN_1_pk.rds")) {
-    can <- gadm(country="CAN", level=1, path="./Data")
+    can <- gadm(country="CAN", level=1, path="Data")
   } else {
     can <- readRDS("Data/gadm/gadm41_CAN_1_pk.rds")
   }
   
+  #filter out prairie provinces
   can <- st_as_sf(can)  
   can <- filter(can, NAME_1 %in% provinces)
 
@@ -129,51 +130,46 @@ grts_GBMP <- function(shapefile,
   can <- st_intersection(can, site)
 
   # read in province grid data and change legal land description column name to LLD
-
   # empty grid object so province grids can be bound to it if site crosses two provinces
   
   grid <- NULL
   
   if ("Alberta" %in% can$NAME_1) {
-    grid_A <- st_read(dsn = "./data/grid/section_grid_BCR11.gpkg", layer = "AB") %>%
+    grid <- st_read(dsn = "Data/Grid/section_grid_BCR11.gpkg", layer = "AB") %>%
       rename(LLD = DESCRIPTOR)
-    grid_A <- st_transform(grid_A, crs = st_crs(site))
-    
-    # Merge into the main grid object
-    if (is.null(grid)) {
-      grid <- grid_A
-    } else {
-      grid <- bind_rows(grid, grid_A)
-    }
+    grid <- st_transform(grid, crs = st_crs(site))
   }
   
   if ("Saskatchewan" %in% can$NAME_1) {
-    grid_S <- st_read(dsn = "./data/grid/section_grid_BCR11.gpkg", layer = "SK")
-    grid_S <- st_transform(grid_S, crs = st_crs(site))
+    grid_tmp <- st_read(dsn = "Data/Grid/section_grid_BCR11.gpkg", layer = "SK")
+    grid_tmp <- st_transform(grid_tmp, crs = st_crs(site))
     
     # Merge into the main grid object
     if (is.null(grid)) {
-      grid <- grid_S
+      grid <- grid_tmp
     } else {
-      grid <- bind_rows(grid, grid_S)
+      grid <- bind_rows(grid, grid_tmp)
     }
   }
   
   if ("Manitoba" %in% can$NAME_1) {
-    grid_M <- st_read(dsn = "./data/grid/section_grid_BCR11.gpkg", layer = "MB") %>%
+    grid_tmp <- st_read(dsn = "Data/Grid/section_grid_BCR11.gpkg", layer = "MB") %>%
       rename(LLD = LEG_DESC)
-    grid_M <- st_transform(grid_M, crs = st_crs(site))
+    grid_tmp <- st_transform(grid_tmp, crs = st_crs(site))
     
     # Merge into the main grid object
     if (is.null(grid)) {
-      grid <- grid_M
+      grid <- grid_tmp
     } else {
-      grid <- bind_rows(grid, grid_M)
+      grid <- bind_rows(grid, grid_tmp)
     }
   }
   
-  
+  #remove temp grid to clear up RAM
+  rm(grid_tmp)
+  gc()
 
+  
 ##### PROCESS PROVINCE SECTION GRID ============================================
   
   #Query out all land sections that intersect with each site polygon
