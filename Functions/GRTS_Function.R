@@ -15,6 +15,8 @@
 
 #temp input values to test function
 shapefile = "HandHillER"
+shapefile = "AndersonNorthLease"
+shapefile = "dundurn"
 site_ID = "AHHL"
 grts_GBMP <- function(shapefile, 
                       site_name_2 = NULL, 
@@ -55,32 +57,41 @@ grts_GBMP <- function(shapefile,
   #load in site shapefile
   site <- st_read(dsn = "./Data/Boundaries", layer = shapefile)
 
-  ##some sites have boundary files that have multiple polygons that need to be grouped together
-  if(nrow(site) > 1){
-    site <- st_union(site)
-  }
+  #some sites have boundary files that have multiple polygons that need to be grouped together
+  #This step also simplifies the attribute table to have only 1 field: site name
+  site$name <- shapefile
+  site <- site %>% group_by(name) %>% dplyr::summarise()
   
-##### SELECT CRS FOR SITE FROM LOCATION ========================================
   
-  # check for missing crs, set to WGS84 to get coordinates for utm_zone function - JVE
+##### Transform to UTM NAD83 projection to allow calculation of coordinates for point count locations========================================
   
-  if (is.na(st_crs(site))) {
+  #if projection is missing, set to WGS84
+  crs_info <- st_crs(site)
+  if(is.na(crs_info)) {
     st_crs(site) <- 4326
   }
   
-
- #find coords for center of site
-  centroid <- st_centroid(site) %>% 
-    st_transform(centroid, crs = 4326) %>%  
-    st_coordinates(centroid)
+  #Determine UTM zone
+  #if projection is lat/long
+  if(grepl("+proj=longlat", crs_info$proj4string)) {
+    centroid <- st_centroid(site)
+    centroid <- st_coordinates(centroid)                  #calculate coordinates of centroid
+    zone <- utm_zone(centroid[1], centroid[2])            #calculate UTM zone using centroid coordinates
+    utm_zone_num <- as.numeric(sub("[C-Z]$", "", zone))   #drop letter from zone, since sites are only in northern hemisphere
+  }
   
-  #find utm zone
-  zone <- utm_zone(centroid[1], centroid[2])            #calculate UTM zone using centroid coordinates
-  utm_zone_num <- as.numeric(sub("[C-Z]$", "", zone))   #drop letter from zone, since sites are only in northern hemisphere
+  #if projection is utm
+  if(grepl("+proj=utm", crs_info$proj4string)) {
+    utm_zone_num <- as.numeric(str_extract(crs_info$proj4string, "(\\d+)"))
+  }
+  
+  #define projection with NAD83 datum and corresponding UTM Zone, transform if needed
   epsg <- 26900 + utm_zone_num
+  crs_srid <- as.numeric(str_extract(crs_info$srid, "(\\d+)"))
+  if(crs_srid != epsg) {
+    site <- st_transform(site, crs = epsg)
+  }
   
-  #transform site to correct crs. crs of other objects will be based off site crs
-  site <- st_transform(site, crs = epsg)
   
   #***BRobinson March 18, 2025: Function would be more universal if you had the option of entering a single 
   #*shapefile or a list of >=2 shapefiles under a single "site_name" argument.
