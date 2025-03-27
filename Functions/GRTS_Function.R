@@ -17,6 +17,7 @@
 shapefile = "HandHillER"
 shapefile = "AndersonNorthLease"
 shapefile = "dundurn"
+shapefile = "hole_in_the_wall"
 shapefile = list("AndersonNorthLease", "AndersonSouthLease")
 shapefile = "manitou"
 site_ID = "AHHL"
@@ -173,105 +174,78 @@ grts_GBMP <- function(shapefile,
 ##### PROCESS PROVINCE SECTION GRID ============================================
   
   #Query out all land sections that intersect with each site polygon
-  SecGrid <- st_intersection(x = site, y = grid)
-  SecGrid$area = st_area(SecGrid)
+  gridToKeep <- st_intersection(x = site, y = grid)
+  gridToKeep$area = st_area(gridToKeep)
   
   
-  #Need to remove slivers of sections! 
-  #But then we also need to filter the full grid list by Legal description
-  # That way we have full sections for creating the centroids and grids.
+  #Remove sections with <half of area within the site
+  # 1 mile^2 = 259000 m2, divide by 2 for area of half a section
+  #using 2.05 instead of 2 to have some tolerance for areas that are slightly less than half a section due to imperfect polygons and rounding error
+  gridToKeep = gridToKeep %>% dplyr::filter(as.numeric(area) >= 2590000/2.05)
   
-  # 1 sq mi = 259000 m2, divide by 2 for half grid...
-  #...using 2.05 instead of 2 to have some tolerance for areas that are slightly... 
-  #...less than half a section due to imperfect polygons and rounding error
+  #GBMP monitoring design is different for large (>5 sections) and small (<= 5 sections) sites
+  #Determine site size
   
-  secToKeep = SecGrid %>% dplyr::filter(as.numeric(area) >= 2590000/2.05)
- 
-  
-  # large or small site? 
-  
-     if (nrow(secToKeep) <= 5) {
-      site_type = "small" 
-      } 
-    else {
-      site_type = "large"
-      }
-  
-  
+  if(nrow(gridToKeep) <= 5) {
+    site_type = "small" 
+  } else {
+    site_type = "large"
+  }
 
-  
-##### SMALL SITES GRID ===========================================================  
- 
-  #   check if it's a small site, if so load in appropriate province grids,...
-  #...transform them and bind them together
-  
+#### If site is small, proceed with quarter section grid 
   if (site_type == "small") {
    
-   suppressWarnings(rm(grid, grid_A, grid_S, grid_M)) #remove grid to save RAM
-   gc() #garbage collection to free up RAM
-
    grid <- NULL
 
    if ("Alberta" %in% can$NAME_1) {
-     grid_A <- st_read(dsn = "./data/grid/quarter_grid_BCR11.gpkg", layer = "AB") %>%
+     grid <- st_read(dsn = "Data/Grid/quarter_grid_BCR11.gpkg", layer = "AB") %>%
        rename(LLD = DESCRIPTIO)
-     grid_A <- st_transform(grid_A, crs = st_crs(site))
-
-     # Merge into the main grid object
-     if (is.null(grid)) {
-       grid <- grid_A
-     } else {
-       grid <- bind_rows(grid, grid_A)
-     }
+     grid <- st_transform(grid, crs = st_crs(site))
    }
 
    if ("Saskatchewan" %in% can$NAME_1) {
-     grid_S <- st_read(dsn = "./data/grid/quarter_grid_BCR11.gpkg", layer = "SK")
-     grid_S <- grid_S %>% unite(col = "LLD", c("QSECT", "PSECT", "PTWP", "PRGE", "PMER"), sep = "-")
-     grid_S <- st_transform(grid_S, crs = st_crs(site))
+     grid_tmp <- st_read(dsn = "Data/Grid/quarter_grid_BCR11.gpkg", layer = "SK")
+     grid_tmp <- grid_tmp %>% unite(col = "LLD", c("QSECT", "PSECT", "PTWP", "PRGE", "PMER"), sep = "-")
+     grid_tmp <- st_transform(grid_tmp, crs = st_crs(site))
 
-     # Merge into the main grid object
+     #Merge into the main grid object
      if (is.null(grid)) {
-       grid <- grid_S
+       grid <- grid_tmp
      } else {
-       grid <- bind_rows(grid, grid_S)
+       grid <- bind_rows(grid, grid_tmp)
      }
    }
-
 
    if ("Manitoba" %in% can$NAME_1) {
-     grid_M <- st_read(dsn = "./data/grid/quarter_grid_BCR11.gpkg", layer = "MB") %>%
+     grid_tmp <- st_read(dsn = "Data/Grid/quarter_grid_BCR11.gpkg", layer = "MB") %>%
        rename(LLD = LEGAL_DESC) %>% 
        rename(zone_1 = ZONE)
-     grid_M <- st_transform(grid_M, crs = st_crs(site))
+     grid_tmp <- st_transform(grid_tmp, crs = st_crs(site))
 
      # Merge into the main grid object
      if (is.null(grid)) {
-       grid <- grid_M
+       grid <- grid_tmp
      } else {
-       grid <- bind_rows(grid, grid_M)
+       grid <- bind_rows(grid, grid_tmp)
      }
    }
-
    
-
-
-    # intersect quarter grid with site boundary
-    grid <- st_intersection(x = site, y = grid)
-    
-    # calculate areas to filter out partial grids
-    grid$area = st_area(grid)
-    
-    # need to remove slivers of sections!
-    secToKeep = grid %>% dplyr::filter(as.numeric(area) >= 647497/2.05)
-    
-    
+   #remove temp grid to clear up RAM
+   rm(grid_tmp)
+   gc()
+   
+   #intersect quarter grid with site boundary
+   gridToKeep <- st_intersection(x = site, y = grid)
+   
+   #calculate areas to filter out partial grids
+   gridToKeep$area = st_area(gridToKeep)
+   
+   #Remove quater sections with <half of area within the site
+   gridToKeep = gridToKeep %>% dplyr::filter(as.numeric(area) >= 647497/2.05)
   }
   
-
-    
-  ### filter by legal land description
-  fullgrid <- grid %>% dplyr::filter(LLD %in% c(secToKeep$LLD))
+  ###filter out section/quarter section grids by legal land description
+  fullgrid <- grid %>% dplyr::filter(LLD %in% c(gridToKeep$LLD))
   
   centroid <- st_centroid(fullgrid)
   
@@ -289,7 +263,7 @@ grts_GBMP <- function(shapefile,
   #          append = TRUE)
   
   
-  suppressWarnings(rm(grid, grid_A, grid_S, grid_M)) #remove grid to save RAM
+  rm(grid) #remove grid to save RAM
   gc() #garbage collection to free up RAM
   
   
@@ -301,16 +275,15 @@ grts_GBMP <- function(shapefile,
   #can manually enter overdraw sample size
   
   #BROBINSON: These ifelse statements need to be reviewed relative to the sample size rules we've established. As they are, they are more complex that the simple rule written above
+  n <- nrow(gridToKeep)
   if(is.null(sample_size)) {
     if(site_type == "small") {
-      n <- nrow(secToKeep)
       if(0.2*n >= 10) {
         n <- round(0.2*n)
       } else { #if(0.2*n < 5 & n > 10){ #BRobinson: This isn't needed anymore because site size is now defined above
         n <- 10
       }
     } else {
-      n <- nrow(secToKeep)
       if(0.2*n >= 5) {
         n <- round(0.2*n)
       } else { #if(0.2*n < 5 & n >5){ #BRobinson: This isn't needed anymore because site size is now defined above
