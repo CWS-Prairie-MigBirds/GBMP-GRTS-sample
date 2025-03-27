@@ -269,42 +269,40 @@ grts_GBMP <- function(shapefile,
   
 ##### DRAW RANDOM SAMPLE =======================================================
   
-  #calculate sample size, either 20% of available grid cells or 5 cells, whichever is greater
+  #calculate sample size
+  #Large sites: either 20% of available grid cells or 5 cells, whichever is greater
+  #Small sites: include all grid cells from fullgrid so that all quarter sections are ranked.
   #or custom input
   #overdraw size is 1/4 of sample size, may be too large for big sites
   #can manually enter overdraw sample size
   
   #BROBINSON: These ifelse statements need to be reviewed relative to the sample size rules we've established. As they are, they are more complex that the simple rule written above
-  n <- nrow(gridToKeep)
+  N <- nrow(gridToKeep)
   if(is.null(sample_size)) {
-    if(site_type == "small") {
-      if(0.2*n >= 10) {
-        n <- round(0.2*n)
-      } else { #if(0.2*n < 5 & n > 10){ #BRobinson: This isn't needed anymore because site size is now defined above
-        n <- 10
-      }
-    } else {
-      if(0.2*n >= 5) {
-        n <- round(0.2*n)
+    if(site_type == "large") {
+      if(0.2*N > 5) {
+        n <- round(0.2*N)
       } else { #if(0.2*n < 5 & n >5){ #BRobinson: This isn't needed anymore because site size is now defined above
         n <- 5
       }
+    } else {
+      n = N
     }
   } else {
     n <- sample_size
   }
   
-  
-  
   if(is.null(overdraw_size)) {
-    n.over <- ceiling(0.25*n)
+    if(site_type == "small") {
+      n.over = 0
+    } else {
+      n.over <- ceiling(0.25*N)
+    }
   } else {
     n.over <- overdraw_size
   }
   
-  
-  ##now we can run the GRTS sample, 
-  
+  #draw GRTS sample
   sample = grts(sframe = centroid, n_base = n, seltype = "equal", n_over = n.over)
   
   ##get samples out of list
