@@ -323,24 +323,20 @@ grts_GBMP <- function(shapefile,
   
 ##### CALCULATE POINT COUNT LOCATIONS ==========================================
   
-  # calculate XY coordinates for point count locations...
-  #...within the each section drawn for the sample
+  # calculate XY coordinates for point count locations within the each grid drawn for the sample
   
-  
-  
-  if(site_type =="small") { ##### small site point count locations, 4 per grid
-    
-    grid.exp <- stable[rep(seq_len(nrow(stable)), 4),]
+  if(site_type =="small") { #small sites have 4 points per quarter section grid
+    grid.exp <- st_drop_geometry(sample)
+    grid.exp <- grid.exp[rep(seq_len(nrow(grid.exp)), 4),]
     #order by rank
     grid.exp <- grid.exp[order(grid.exp$rank),]
     #add field to indicate point number within each section (1-4)
-    grid.exp$pts <- as.vector(rep(1:4, nrow(stable)))
+    grid.exp$pts <- as.vector(rep(1:4, nrow(sample)))
     #create fields for X and Y coordinates of points
     grid.exp$Xcl <- 0
     grid.exp$Ycl <- 0
     
     #Calculate coordinates for each point based on it's distance from the centroid
-    
     grid.exp$Xcl <- ifelse(grid.exp$pts==2 | grid.exp$pts==4,
                            grid.exp$CentX +200, grid.exp$CentX-200)
     grid.exp$Ycl <- ifelse(grid.exp$pts==2 | grid.exp$pts==1,
@@ -348,37 +344,27 @@ grts_GBMP <- function(shapefile,
     
  
     
-  } else { ##### large site point count locations, 16 per grid
-  
-  
-  grid.exp <- stable[rep(seq_len(nrow(stable)), 16),]
-  #order by rank
-  grid.exp <- grid.exp[order(grid.exp$rank),]
-  #add field to indicate point number within each section (1-16)
-  grid.exp$pts <- as.vector(rep(1:16, nrow(stable)))
-  #create fields for X and Y coordinates of points
-  grid.exp$Xcl <- 0
-  grid.exp$Ycl <- 0
-  
-  #Calculate coordinates for each point based on it's distance from the centroid
-  grid.exp$Xcl <- ifelse(grid.exp$pts==1 | grid.exp$pts==5 | grid.exp$pts==9 | grid.exp$pts==13,
-                         grid.exp$CentX+600, grid.exp$Xcl)
-  grid.exp$Xcl <- ifelse(grid.exp$pts==2 | grid.exp$pts==6 | grid.exp$pts==10 | grid.exp$pts==14,
-                         grid.exp$CentX+200, grid.exp$Xcl)
-  grid.exp$Xcl <- ifelse(grid.exp$pts==3 | grid.exp$pts==7 | grid.exp$pts==11 | grid.exp$pts==15,
-                         grid.exp$CentX-200, grid.exp$Xcl)
-  grid.exp$Xcl <- ifelse(grid.exp$pts==4 | grid.exp$pts==8 | grid.exp$pts==12 | grid.exp$pts==16,
-                         grid.exp$CentX-600, grid.exp$Xcl)
-  grid.exp$Ycl <- ifelse(grid.exp$pts==1 | grid.exp$pts==2 | grid.exp$pts==3 | grid.exp$pts==4,
-                         grid.exp$CentY+600, grid.exp$Ycl)
-  grid.exp$Ycl <- ifelse(grid.exp$pts==5 | grid.exp$pts==6 | grid.exp$pts==7 | grid.exp$pts==8,
-                         grid.exp$CentY+200, grid.exp$Ycl)
-  grid.exp$Ycl <- ifelse(grid.exp$pts==9 | grid.exp$pts==10 | grid.exp$pts==11 | grid.exp$pts==12,
-                         grid.exp$CentY-200, grid.exp$Ycl)
-  grid.exp$Ycl <- ifelse(grid.exp$pts==13 | grid.exp$pts==14 | grid.exp$pts==15 | grid.exp$pts==16,
-                         grid.exp$CentY-600, grid.exp$Ycl)
-  
-  }
+  } else { #large sites have 16 points per section grid
+    grid.exp <- st_drop_geometry(sample)
+    grid.exp <- grid.exp[rep(seq_len(nrow(grid.exp)), 16),]
+    #order by rank
+    grid.exp <- grid.exp[order(grid.exp$rank),]
+    #add field to indicate point number within each section (1-16)
+    grid.exp$pts <- as.vector(rep(1:16, nrow(sample)))
+    #create fields for X and Y coordinates of points
+    grid.exp$Xcl <- 0
+    grid.exp$Ycl <- 0
+    
+    #Calculate coordinates for each point based on it's distance from the centroid
+    grid.exp$Xcl <- ifelse(grid.exp$pts==1 | grid.exp$pts==5 | grid.exp$pts==9 | grid.exp$pts==13, grid.exp$CentX+600, grid.exp$Xcl)
+    grid.exp$Xcl <- ifelse(grid.exp$pts==2 | grid.exp$pts==6 | grid.exp$pts==10 | grid.exp$pts==14, grid.exp$CentX+200, grid.exp$Xcl)
+    grid.exp$Xcl <- ifelse(grid.exp$pts==3 | grid.exp$pts==7 | grid.exp$pts==11 | grid.exp$pts==15, grid.exp$CentX-200, grid.exp$Xcl)
+    grid.exp$Xcl <- ifelse(grid.exp$pts==4 | grid.exp$pts==8 | grid.exp$pts==12 | grid.exp$pts==16, grid.exp$CentX-600, grid.exp$Xcl)
+    grid.exp$Ycl <- ifelse(grid.exp$pts==1 | grid.exp$pts==2 | grid.exp$pts==3 | grid.exp$pts==4, grid.exp$CentY+600, grid.exp$Ycl)
+    grid.exp$Ycl <- ifelse(grid.exp$pts==5 | grid.exp$pts==6 | grid.exp$pts==7 | grid.exp$pts==8, grid.exp$CentY+200, grid.exp$Ycl)
+    grid.exp$Ycl <- ifelse(grid.exp$pts==9 | grid.exp$pts==10 | grid.exp$pts==11 | grid.exp$pts==12, grid.exp$CentY-200, grid.exp$Ycl)
+    grid.exp$Ycl <- ifelse(grid.exp$pts==13 | grid.exp$pts==14 | grid.exp$pts==15 | grid.exp$pts==16, grid.exp$CentY-600, grid.exp$Ycl)
+    }
   
   
   
@@ -387,8 +373,8 @@ grts_GBMP <- function(shapefile,
   
   grid.exp$SITE <- site_ID 
   grid.exp$PCODE <- pcode
-  grid.exp$Datum <- "NAD83"   
-  grid.exp$Zone <- zone
+  # grid.exp$Datum <- "NAD83"   
+  # grid.exp$Zone <- utm_zone_num
   grid.exp$STN <- paste(sprintf("%02d", grid.exp$rank),sprintf("%02d",grid.exp$pts),sep="-")
   grid.exp$label <- paste(grid.exp$SITE,grid.exp$STN,sep="-")
   
@@ -400,22 +386,8 @@ grts_GBMP <- function(shapefile,
   
   #clip out any points that fall outside of original study site
   pts <- st_intersection(pts, site)
-  
-  pts <- pts %>% dplyr::select(label, everything())
+  pts <- dplyr::select(pts, label, everything())
  
-###BRobinson_Nov 6, 2023: this is exporting the point shapefile in the projection of the section grid,
-  #which could be different from province to province. Save exports until the end after all 
-  #shapefiles have been converted back to WGS83
-  
-  
-  #  #write the point sample shapefile
-  # 
-  # st_write(obj = pts, 
-  #          dsn = paste0("./output/", site_ID, "/", site_ID, ".gpkg"), 
-  #          layer = paste0(site_ID, "_PointSample"), 
-  #          driver = "GPKG",
-  #          append = TRUE
-  #          )
   
 ##### EXPORT ALL GEOSPATIAL FILES TO THE GPKG SITE FILE ========================
   #Convert everything back to WGS84 projection
