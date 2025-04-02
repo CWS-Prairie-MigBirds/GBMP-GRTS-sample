@@ -483,6 +483,7 @@ grts_GBMP <- function(shapefile,
   if ("Alberta" %in% can$NAME_1) {
     road <- st_read(dsn = "Data/GIS/road_network.gpkg", layer = "AB_road")
     road <- road %>% dplyr::select(ROADCLASS)
+    road$ROADCLASS <- as.character(road$ROADCLASS)
     road <- st_transform(road, crs = st_crs(site)) 
     road <- st_crop(road, st_bbox(bbox))
   }
@@ -610,7 +611,7 @@ grts_GBMP <- function(shapefile,
   sf_use_s2(FALSE)
   tmap_mode("view")
   
-  tmap_options(check.and.fix = TRUE)
+  #tmap_options(check.and.fix = TRUE)
   
 map_interactive <- tm_shape(site) + tm_borders(col = "black",lwd = 3) + 
     tm_basemap("Esri.WorldImagery") +
