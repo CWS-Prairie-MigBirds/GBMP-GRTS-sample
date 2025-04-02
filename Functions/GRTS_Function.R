@@ -599,6 +599,7 @@ grts_GBMP <- function(shapefile,
   
 
 ##### CREATE INTERACTIVE MAP ===================================================
+  sf_use_s2(FALSE)
   tmap_mode("view")
   
   tmap_options(check.and.fix = TRUE)
@@ -608,8 +609,8 @@ grts_GBMP <- function(shapefile,
     tm_shape(gridToKeep) + tm_borders(col = "#393939") + 
     tm_shape(road) + tm_lines(col = "orange") + 
     tm_shape(hwy) + tm_lines(col = "yellow", lwd = 3) +
-    tm_shape(pts) + tm_dots(col = "#e8e8e8", border.col = "#393939") + 
-    tm_shape(sec_sample) + tm_borders(alpha = 0) + tm_text(text = "rank")
+    tm_shape(pts) + tm_dots(fill = "#e8e8e8", col = "#393939") + 
+    tm_shape(sec_sample) + tm_borders(fill_alpha = 0) + tm_text(text = "rank")
   
                                                          
                                                            #   col = "black",
@@ -621,7 +622,6 @@ grts_GBMP <- function(shapefile,
   
   #o output of number of grids and render map
   return(list(map_interactive, grids))
-  
 }
 
 
