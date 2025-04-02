@@ -457,151 +457,141 @@ grts_GBMP <- function(shapefile,
    
 ##### EXPORT TABLE FOR NATURE COUNTS DATABASE ==================================
   
-  nc <- pts %>% dplyr::select(PCODE, SITE, label, lat, lon) %>% 
+  nc <- pts %>% 
+    dplyr::select(PCODE, SITE, label, lat, lon) %>% 
     rename(project_id = PCODE, 
            site_id = SITE, 
            point_id = label, 
            latitude = lat, 
-           longitude = lon) 
+           longitude = lon) %>%
+    st_drop_geometry()
   
   write_csv(nc, paste0("Output/", site_ID, "/", site_ID, "_NatureCounts_Upload.csv"))
   
-  
-
 ### CREATE QGIS EXPORTS FOR MAKING MAP =========================================
   
   #read QGIS style layer
-  style <- st_read("./data/GIS/layer_styles.gpkg", layer = "layer_styles")
-  
+  style <- st_read("Data/GIS/layer_styles.gpkg", layer = "layer_styles")
   
   #### MAKE MORE EFFICIENT
+  sf_use_s2(TRUE)
   bbox <- st_buffer(site, 15000)
   bbox <- st_transform(bbox, crs = st_crs(site))
   
-    road <- NULL
+  road <- NULL
     
   if ("Alberta" %in% can$NAME_1) {
     road <- st_read(dsn = "Data/GIS/road_network.gpkg", layer = "AB_road")
     road <- st_transform(road, crs = st_crs(site)) 
-    road <- st_crop(AB_road, st_bbox(bbox))
+    road <- st_crop(road, st_bbox(bbox))
   }
 
   if ("Saskatchewan" %in% can$NAME_1) {
-    SK_road <- st_read(dsn = "./data/GIS/road_network.gpkg", layer = "SK_road")
-    SK_road <- st_transform(SK_road, crs = st_crs(site))
-    SK_road <- st_crop(SK_road, st_bbox(bbox))
+    road_tmp <- st_read(dsn = "Data/GIS/road_network.gpkg", layer = "SK_road")
+    road_tmp <- st_transform(road_tmp, crs = st_crs(site))
+    road_tmp <- st_crop(road_tmp, st_bbox(bbox))
   
     # Merge into the main road object
     if (is.null(road)) {
-      road <- SK_road
+      road <- road_tmp
     } else {
-      road <- bind_rows(road, SK_road)
+      road <- bind_rows(road, road_tmp)
     }
   }
   
   if ("Manitoba" %in% can$NAME_1) {
-    MB_road <- st_read(dsn = "./data/GIS/road_network.gpkg", layer = "MB_road")
-    MB_road <- st_transform(MB_road, crs = st_crs(site)) 
-    MB_road <- st_crop(MB_road, st_bbox(bbox))
+    road_tmp <- st_read(dsn = "Data/GIS/road_network.gpkg", layer = "MB_road")
+    road_tmp <- st_transform(road_tmp, crs = st_crs(site)) 
+    road_tmp <- st_crop(road_tmp, st_bbox(bbox))
     
     # Merge into the main road object
     if (is.null(road)) {
-      road <- MB_road
+      road <- road_tmp
     } else {
-      road <- bind_rows(road, MB_road)
+      road <- bind_rows(road, road_tmp)
     }
   }
-    
+  rm(road_tmp)
+  gc()
     
   hwy <- NULL
-    
-    if ("Alberta" %in% can$NAME_1) {
-      AB_hwy <- st_read(dsn = "./data/GIS/road_network.gpkg", layer = "AB_hwy")
-      AB_hwy <- st_transform(AB_hwy, crs = st_crs(site)) 
-      AB_hwy <- st_crop(AB_hwy, st_bbox(bbox))
-    
-    
-    # Merge into the main road object
-    if (is.null(hwy)) {
-      hwy <- AB_hwy
-    } else {
-      hwy <- bind_rows(hwy, AB_hwy)
+  if ("Alberta" %in% can$NAME_1) {
+    hwy <- st_read(dsn = "Data/GIS/road_network.gpkg", layer = "AB_hwy")
+    hwy <- st_transform(hwy, crs = st_crs(site)) 
+    hwy <- st_crop(hwy, st_bbox(bbox))
     }
-  }
-    
-    
-    if ("Saskatchewan" %in% can$NAME_1) {
-      SK_hwy <- st_read(dsn = "./data/GIS/road_network.gpkg", layer = "SK_hwy")
-      SK_hwy <- st_transform(SK_hwy, crs = st_crs(site))
-      SK_hwy <- st_crop(SK_hwy, st_bbox(bbox))
-    
-    
-    # Merge into the main hwy object
-    if (is.null(hwy)) {
-      hwy <- SK_hwy
-    } else {
-      hwy <- bind_rows(hwy, SK_hwy)
-    }
-  }
-    
-    if ("Manitoba" %in% can$NAME_1) {
-      MB_hwy <- st_read(dsn = "./data/GIS/road_network.gpkg", layer = "MB_hwy")
-      MB_hwy <- st_transform(MB_hwy, crs = st_crs(site)) 
-      MB_hwy <- st_crop(MB_hwy, st_bbox(bbox))
-    
-    
-    # Merge into the main hwy object
-    if (is.null(hwy)) {
-      hwy <- MB_hwy
-    } else {
-      hwy <- bind_rows(hwy, MB_hwy)
-    }
-  }
-    gc()
   
+  if ("Saskatchewan" %in% can$NAME_1) {
+    hwy_tmp <- st_read(dsn = "Data/GIS/road_network.gpkg", layer = "SK_hwy")
+    hwy_tmp <- st_transform(hwy_tmp, crs = st_crs(site))
+    hwy_tmp <- st_crop(hwy_tmp, st_bbox(bbox))
     
+    # Merge into the main hwy object
+    if (is.null(hwy)) {
+      hwy <- hwy_tmp
+      } else {
+        hwy <- bind_rows(hwy, hwy_tmp)
+      }
+    }
+  
+  if ("Manitoba" %in% can$NAME_1) {
+    hwy_tmp <- st_read(dsn = "Data/GIS/road_network.gpkg", layer = "MB_hwy")
+    hwy_tmp <- st_transform(hwy_tmp, crs = st_crs(site)) 
+    hwy_tmp <- st_crop(hwy_tmp, st_bbox(bbox))
+    
+    # Merge into the main hwy object
+    if (is.null(hwy)) {
+      hwy <- hwy_tmp
+      } else {
+        hwy <- bind_rows(hwy, hwy_tmp)
+      }
+    }
+  rm(hwy_tmp)
+  gc()
+  
+  #export gpkg files for QGIS map
   st_write(obj = site, 
-           dsn = paste0("./output/", site_ID, "/", site_ID, "_QGIS.gpkg"), 
+           dsn = paste0("Output/", site_ID, "/", site_ID, "_QGIS.gpkg"), 
            layer = "boundary", 
            driver = "GPKG",
            append = TRUE)
   
   st_write(obj = fullgrid, 
-           dsn = paste0("./output/", site_ID, "/", site_ID, "_QGIS.gpkg"),
+           dsn = paste0("Output/", site_ID, "/", site_ID, "_QGIS.gpkg"),
            layer = "sec_grid", 
            driver = "GPKG",
            append = TRUE)
   
   st_write(obj = sec_sample, 
-           dsn = paste0("./output/", site_ID, "/", site_ID, "_QGIS.gpkg"), 
+           dsn = paste0("Output/", site_ID, "/", site_ID, "_QGIS.gpkg"), 
            layer = "grid_labels", 
            driver = "GPKG", 
            append = TRUE
   )
   
   st_write(obj = road, 
-           dsn = paste0("./output/", site_ID, "/", site_ID, "_QGIS.gpkg"), 
+           dsn = paste0("Output/", site_ID, "/", site_ID, "_QGIS.gpkg"), 
            layer = "road", 
            driver = "GPKG", 
            append = TRUE
   )
   
   st_write(obj = hwy, 
-           dsn = paste0("./output/", site_ID, "/", site_ID, "_QGIS.gpkg"), 
+           dsn = paste0("Output/", site_ID, "/", site_ID, "_QGIS.gpkg"), 
            layer = "hwy", 
            driver = "GPKG", 
            append = TRUE
   )
   
   st_write(obj = pts, 
-           dsn = paste0("./output/", site_ID, "/", site_ID, "_QGIS.gpkg"), 
+           dsn = paste0("Output/", site_ID, "/", site_ID, "_QGIS.gpkg"), 
            layer = "pts", 
            driver = "GPKG",
            append = TRUE
   )
   
   st_write(obj = style,
-           dsn = paste0("./output/", site_ID, "/", site_ID, "_QGIS.gpkg"), 
+           dsn = paste0("Output/", site_ID, "/", site_ID, "_QGIS.gpkg"), 
            layer = "layer_styles", 
            driver = "GPKG",
            append = TRUE
@@ -609,16 +599,13 @@ grts_GBMP <- function(shapefile,
   
 
 ##### CREATE INTERACTIVE MAP ===================================================
-  
-  
-  
   tmap_mode("view")
   
   tmap_options(check.and.fix = TRUE)
   
   map_interactive <- tm_shape(site) + tm_borders(col = "black",lwd = 3) + 
     tm_basemap("Esri.WorldImagery") +
-    tm_shape(secToKeep) + tm_borders(col = "#393939") + 
+    tm_shape(gridToKeep) + tm_borders(col = "#393939") + 
     tm_shape(road) + tm_lines(col = "orange") + 
     tm_shape(hwy) + tm_lines(col = "yellow", lwd = 3) +
     tm_shape(pts) + tm_dots(col = "#e8e8e8", border.col = "#393939") + 
@@ -628,7 +615,6 @@ grts_GBMP <- function(shapefile,
                                                            #   col = "black",
                                                            # fontface = 2,
                                                            # shadow = TRUE)
-  
   
   # return number of base sample grids and overdraw grids
   grids <- c(print(paste0("Base Sample Size: ", print(n))), print(paste0("Overdraw Sample Size: ", print(n.over))))
