@@ -441,7 +441,7 @@ grts_GBMP <- function(shapefile,
   
 ##### WRITE GPX FILE ===========================================================
   #filter dataframe for export to gpx
-  pts <- pts %>% 
+  gpx <- pts %>% 
     dplyr::select(label, lon, lat) %>% 
     rename(name = label) 
 
@@ -449,46 +449,22 @@ grts_GBMP <- function(shapefile,
   source("Functions/write_gpx.R")
   
   #run function
-  write_gpx(lat = pts$lat, 
-            lon = pts$lon, 
-            name = pts$name, 
+  write_gpx(lat = gpx$lat, 
+            lon = gpx$lon, 
+            name = gpx$name, 
             out_file = paste0("Output/", site_ID, "/", site_ID, ".gpx")
             )
    
-##### EXPORT STATION TABLE FOR GBM ACCESS DATABASE ===============================
-  #(append to tblStations)
-  ##BRobinson Nov 6, 2023: no need to recalculate coordinates in UTMs since they were originally in UTMs
-  #Xcl and Ycl witnin pts should still have correct coordinates in UTMs
-  utm2 <- pts
-  utm2$Xcl <- st_coordinates(pts)[,1]
-  utm2$Ycl <- st_coordinates(pts)[,2]
-  
-  #BRObinson Nov 6, 2023: CentX and CentY are not needed in this table. However, X and Y, which are the 
-  #coordinates in lat/long (NAD83), needs to be included in this export
-  utm2 = subset(utm2, select= c(PCODE, SITE, STN, label, CentX, CentY, Xcl, Ycl, Datum, Zone))
-  
-
-  write.csv(utm2, 
-            paste0("./output/", site_ID, "/tblStations_", site_ID, ".csv"), 
-            row.names=F
-            )
-  
-  #import this into GBM Access database (append to tblSections)
-
-  
-  
 ##### EXPORT TABLE FOR NATURE COUNTS DATABASE ==================================
   
-  nc <- latlong %>% dplyr::select(PCODE, SITE, label, lat, lon) %>% 
+  nc <- pts %>% dplyr::select(PCODE, SITE, label, lat, lon) %>% 
     rename(project_id = PCODE, 
            site_id = SITE, 
            point_id = label, 
            latitude = lat, 
            longitude = lon) 
   
-  
-  write_csv(nc, 
-            paste0("./output/", site_ID, "/", site_ID, "_NatureCounts_Upload.csv"))
+  write_csv(nc, paste0("Output/", site_ID, "/", site_ID, "_NatureCounts_Upload.csv"))
   
   
 
@@ -505,17 +481,9 @@ grts_GBMP <- function(shapefile,
     road <- NULL
     
   if ("Alberta" %in% can$NAME_1) {
-    AB_road <- st_read(dsn = "./data/GIS/road_network.gpkg", layer = "AB_road")
-    AB_road <- st_transform(AB_road, crs = st_crs(site)) 
-    AB_road <- st_crop(AB_road, st_bbox(bbox))
-  
-
-    # Merge into the main road object
-    if (is.null(road)) {
-      road <- AB_road
-    } else {
-      road <- bind_rows(road, AB_road)
-    }
+    road <- st_read(dsn = "Data/GIS/road_network.gpkg", layer = "AB_road")
+    road <- st_transform(road, crs = st_crs(site)) 
+    road <- st_crop(AB_road, st_bbox(bbox))
   }
 
   if ("Saskatchewan" %in% can$NAME_1) {
@@ -531,11 +499,10 @@ grts_GBMP <- function(shapefile,
     }
   }
   
-    if ("Manitoba" %in% can$NAME_1) {
-      MB_road <- st_read(dsn = "./data/GIS/road_network.gpkg", layer = "MB_road")
-      MB_road <- st_transform(MB_road, crs = st_crs(site)) 
-      MB_road <- st_crop(MB_road, st_bbox(bbox))
-    
+  if ("Manitoba" %in% can$NAME_1) {
+    MB_road <- st_read(dsn = "./data/GIS/road_network.gpkg", layer = "MB_road")
+    MB_road <- st_transform(MB_road, crs = st_crs(site)) 
+    MB_road <- st_crop(MB_road, st_bbox(bbox))
     
     # Merge into the main road object
     if (is.null(road)) {
