@@ -305,31 +305,20 @@ grts_GBMP <- function(shapefile,
   #draw GRTS sample
   sample = grts(sframe = centroid, n_base = n, seltype = "equal", n_over = n.over)
   
-  ##get samples out of list
-  
+  #get samples out of list
   sample_b <- sample$sites_base
   sample_o <- sample$sites_over
+  sample <- rbind(sample_b, sample_o)
   
-  sample2 <- rbind(sample_b, sample_o)
-  
-  #Check to see if the draw is funky before proceeding, if heavily clumped, run grts() again.
-
   #Create a rank column
+  sample$rank <- 1:nrow(sample)
   
-  sample2$rank <- 1:nrow(sample2)
-  
-
-  # create section sample grids
-  
-  sec_sample <- fullgrid %>% dplyr::filter(LLD %in% c(sample2$LLD)) 
+  #create section sample grids
+  sec_sample <- dplyr::filter(fullgrid, LLD %in% c(sample$LLD)) 
   
   #add rank column to sec_sample
-  
-  rank_col <- sample2[c("LLD", "rank")] %>% 
-    st_drop_geometry()
-  
-  sec_sample <- left_join(as.data.frame(sec_sample), rank_col, by = "LLD")
-  sec_sample <- st_as_sf(sec_sample)
+  rank <- st_drop_geometry(sample[c("LLD", "rank")])
+  sec_sample <- left_join(sec_sample, rank, by = "LLD")
   
   # #write section sample shapefile
   # st_write(obj = sec_sample, 
@@ -341,7 +330,7 @@ grts_GBMP <- function(shapefile,
   
   ###Create csv table of the section sample to be imported into Access (Append to tblSections)
   
-  stable <- st_drop_geometry(sample2)
+  stable <- st_drop_geometry(sample)
   
   # UPDATE site code
   stable$SITE <- site_ID #change to correct code for site
