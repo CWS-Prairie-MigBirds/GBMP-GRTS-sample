@@ -319,35 +319,7 @@ grts_GBMP <- function(shapefile,
   #add rank column to sec_sample
   rank <- st_drop_geometry(sample[c("LLD", "rank")])
   sec_sample <- left_join(sec_sample, rank, by = "LLD")
-  
-  # #write section sample shapefile
-  # st_write(obj = sec_sample, 
-  #          dsn = paste0("./output/", site_ID, "/", site_ID, ".gpkg"), 
-  #          layer = paste0(site_ID, "_SecSample"), 
-  #          driver = "GPKG", 
-  #          append = TRUE
-  #          )
-  
-  ###Create csv table of the section sample to be imported into Access (Append to tblSections)
-  
-  stable <- st_drop_geometry(sample)
-  
-  # UPDATE site code
-  stable$SITE <- site_ID #change to correct code for site
-  
 
-  #export table for GBM Access database
-  write.csv(subset(stable, select = -c(replsite, caty)), 
-            file=paste0("./output/", site_ID, "/tblSections_", site_ID, ".csv"), 
-            row.names=F,
-            ) 
-   
-  #import this into GBM Access database (append to tblSections)
-  
-  
-
-  
-  
   
 ##### CALCULATE POINT COUNT LOCATIONS ==========================================
   
