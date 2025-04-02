@@ -21,6 +21,9 @@ shapefile = "hole_in_the_wall"
 shapefile = list("AndersonNorthLease", "AndersonSouthLease")
 shapefile = "manitou"
 site_ID = "AHHL"
+pcode = "GBM"
+sample_size = NULL
+overdraw_size = NULL
 grts_GBMP <- function(shapefile,
                       site_ID, 
                       pcode, 
@@ -386,30 +389,43 @@ grts_GBMP <- function(shapefile,
   
   #clip out any points that fall outside of original study site
   pts <- st_intersection(pts, site)
-  pts <- dplyr::select(pts, label, everything())
- 
   
 ##### EXPORT ALL GEOSPATIAL FILES TO THE GPKG SITE FILE ========================
   #Convert everything back to WGS84 projection
   gpkg_export <- lapply(list(site = site, fullgrid = fullgrid, sec_sample = sec_sample, pts = pts), FUN = st_transform, crs = 4326)
+  list2env(gpkg_export, env = environment()) #reassigned elements of the list to objects in the environment
+  
+  #add extra columnes and remove unneeded columns from attribute tables
+  fullgrid$SITE <- site_ID
+  fullgrid$PCODE <- pcode
+  sec_sample$SITE <- site_ID
+  sec_sample$PCODE <- pcode
+  
+  fullgrid <- fullgrid %>% dplyr::select(PCODE, SITE, LLD)
+  sec_sample <- sec_sample %>% dplyr::select(PCODE, SITE, LLD, rank)
+  
+  #add lat/long coordinates to pts
+  pts$lon <- st_coordinates(pts)[,1]
+  pts$lat <- st_coordinates(pts)[,2]
+  pts <- pts %>% dplyr::select(PCODE, SITE, STN, label, lat, lon, rank, LLD)
   
   #export site boundary file
   st_write(obj = site, 
-           dsn = paste0("./output/", site_ID, "/", site_ID, ".gpkg"), 
+           dsn = paste0("Output/", site_ID, "/", site_ID, ".gpkg"), 
            layer = paste0(site_ID, "_boundary"), 
            driver = "GPKG",
            append = TRUE)
   
   #export section grid file  
   st_write(obj = fullgrid, 
-           dsn = paste0("./output/", site_ID, "/", site_ID, ".gpkg"),
+           dsn = paste0("Output/", site_ID, "/", site_ID, ".gpkg"),
            layer = paste0(site_ID, "_SecGrid"), 
            driver = "GPKG",
            append = TRUE)
   
   #export section sample file
   st_write(obj = sec_sample, 
-           dsn = paste0("./output/", site_ID, "/", site_ID, ".gpkg"), 
+           dsn = paste0("Output/", site_ID, "/", site_ID, ".gpkg"), 
            layer = paste0(site_ID, "_SecSample"), 
            driver = "GPKG", 
            append = TRUE
@@ -417,23 +433,15 @@ grts_GBMP <- function(shapefile,
   
   #export the point location file
   st_write(obj = pts, 
-           dsn = paste0("./output/", site_ID, "/", site_ID, ".gpkg"), 
+           dsn = paste0("Output/", site_ID, "/", site_ID, ".gpkg"), 
            layer = paste0(site_ID, "_PointSample"), 
            driver = "GPKG",
            append = TRUE
   )
   
 ##### WRITE GPX FILE ===========================================================
-  
-  #transform points to WGS83 for export to gpx
-  latlong <- st_transform(pts, crs = 4326)
-  
-  #get coordinates from file
-  latlong$lon <- st_coordinates(latlong)[,1]
-  latlong$lat <- st_coordinates(latlong)[,2]
-   
   #filter dataframe for export to gpx
-  latlong2 <- latlong %>% 
+  pts <- pts %>% 
     dplyr::select(label, lon, lat) %>% 
     rename(name = label) 
 
