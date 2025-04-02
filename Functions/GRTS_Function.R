@@ -20,7 +20,7 @@ shapefile = "dundurn"
 shapefile = "hole_in_the_wall"
 shapefile = list("AndersonNorthLease", "AndersonSouthLease")
 shapefile = "manitou"
-site_ID = "AHHL"
+site_ID = "SMAN"
 pcode = "GBM"
 sample_size = NULL
 overdraw_size = NULL
@@ -482,12 +482,15 @@ grts_GBMP <- function(shapefile,
     
   if ("Alberta" %in% can$NAME_1) {
     road <- st_read(dsn = "Data/GIS/road_network.gpkg", layer = "AB_road")
+    road <- road %>% dplyr::select(ROADCLASS)
     road <- st_transform(road, crs = st_crs(site)) 
     road <- st_crop(road, st_bbox(bbox))
   }
 
   if ("Saskatchewan" %in% can$NAME_1) {
     road_tmp <- st_read(dsn = "Data/GIS/road_network.gpkg", layer = "SK_road")
+    road_tmp <- road_tmp %>% dplyr::select(ROADCLASS)
+    road_tmp$ROADCLASS <- as.character(road_tmp$ROADCLASS)
     road_tmp <- st_transform(road_tmp, crs = st_crs(site))
     road_tmp <- st_crop(road_tmp, st_bbox(bbox))
   
@@ -501,6 +504,8 @@ grts_GBMP <- function(shapefile,
   
   if ("Manitoba" %in% can$NAME_1) {
     road_tmp <- st_read(dsn = "Data/GIS/road_network.gpkg", layer = "MB_road")
+    road_tmp <- road_tmp %>% dplyr::select(ROADCLASS)
+    road_tmp$ROADCLASS <- as.character(road_tmp$ROADCLASS)
     road_tmp <- st_transform(road_tmp, crs = st_crs(site)) 
     road_tmp <- st_crop(road_tmp, st_bbox(bbox))
     
@@ -517,12 +522,14 @@ grts_GBMP <- function(shapefile,
   hwy <- NULL
   if ("Alberta" %in% can$NAME_1) {
     hwy <- st_read(dsn = "Data/GIS/road_network.gpkg", layer = "AB_hwy")
+    hwy <- hwy %>% dplyr::select(RTNUMBER1)
     hwy <- st_transform(hwy, crs = st_crs(site)) 
     hwy <- st_crop(hwy, st_bbox(bbox))
     }
   
   if ("Saskatchewan" %in% can$NAME_1) {
     hwy_tmp <- st_read(dsn = "Data/GIS/road_network.gpkg", layer = "SK_hwy")
+    hwy_tmp <- hwy_tmp %>% dplyr::select(RTNUMBER1)
     hwy_tmp <- st_transform(hwy_tmp, crs = st_crs(site))
     hwy_tmp <- st_crop(hwy_tmp, st_bbox(bbox))
     
@@ -536,6 +543,7 @@ grts_GBMP <- function(shapefile,
   
   if ("Manitoba" %in% can$NAME_1) {
     hwy_tmp <- st_read(dsn = "Data/GIS/road_network.gpkg", layer = "MB_hwy")
+    hwy_tmp <- hwy_tmp %>% dplyr::select(RTNUMBER1)
     hwy_tmp <- st_transform(hwy_tmp, crs = st_crs(site)) 
     hwy_tmp <- st_crop(hwy_tmp, st_bbox(bbox))
     
@@ -604,26 +612,21 @@ grts_GBMP <- function(shapefile,
   
   tmap_options(check.and.fix = TRUE)
   
-  map_interactive <- tm_shape(site) + tm_borders(col = "black",lwd = 3) + 
+map_interactive <- tm_shape(site) + tm_borders(col = "black",lwd = 3) + 
     tm_basemap("Esri.WorldImagery") +
     tm_shape(gridToKeep) + tm_borders(col = "#393939") + 
     tm_shape(road) + tm_lines(col = "orange") + 
     tm_shape(hwy) + tm_lines(col = "yellow", lwd = 3) +
-    tm_shape(pts) + tm_dots(fill = "#e8e8e8", col = "#393939") + 
-    tm_shape(sec_sample) + tm_borders(fill_alpha = 0) + tm_text(text = "rank")
+    tm_shape(pts) + tm_dots(col = "#393939") + 
+    tm_shape(sec_sample) + tm_polygons(fill_alpha = 0) + tm_text(text = "rank")
   
-                                                         
-                                                           #   col = "black",
-                                                           # fontface = 2,
-                                                           # shadow = TRUE)
-  
+                                                        
   # return number of base sample grids and overdraw grids
   grids <- c(print(paste0("Base Sample Size: ", print(n))), print(paste0("Overdraw Sample Size: ", print(n.over))))
   
   #o output of number of grids and render map
   return(list(map_interactive, grids))
 }
-
 
 
 
