@@ -29,8 +29,7 @@ grts_GBMP <- function(shapefile,
   using(
     "tidyverse",
     "parallel", 
-    "sf", 
-    #"raster",
+    "sf",
     "gfcanalysis", 
     "spsurvey", 
     "pgirmess", 
@@ -39,7 +38,6 @@ grts_GBMP <- function(shapefile,
     "matrixStats",
     "tmap",
     "tmaptools",
-    #"OpenStreetMap",
     "basemaps",
     "geodata"
   )
