@@ -1,12 +1,17 @@
 ### INSTRUCTIONS
-# Move your site boundary shapefile into the data > boundaries folder
-# Run the function line
+# Move your site boundary shapefile into the Data > Boundaries folder
 # Input the arguments into the function at the bottom of the page:
-# site_name: the name of the shapefile in the boundaries folder, without suffix .shp
-# site_ID: the 4-letter site code, starting with the province letter
+# # shapefile: If only a single shapefile defines the site, enter the name of the shapefile. If multiple shapefiles, enter a list with all shapefile names
+# site_ID: enter the four letter site code
 # pcode: project code
-# sample_size: if you want to manually input number of grids, otherwise the sample size will be 20% of available grids
-# overdraw_size: to manually input the number of overdraw grids, otherwise will be 25% of sample size
-# check the interactive map output to see that everything looks normal and there is not too much clumping
+# sample_size: number of desired base sample grids, if entered will override calculated 20%
+# overdraw_size:  number of desired overdraw grids, if entered will override calculated 1/4 of sample size
+# check the interactive map output (the first element of the list that is output from the function) 
+# to see that everything looks normal and there is not too much clumping
 # rerun the function if necessary
 # NOTE: delete the entire output folder before rerunning to ensure everything is properly exported
+
+source("Functions/GRTS_Function.R")
+AHHL <- grts_GBMP(shapefile = "HandHillER",
+                  site_ID = "AHHL",
+                  pcode = "GBM")

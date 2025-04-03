@@ -12,25 +12,18 @@
     # make pretty map
     # generate sample from only legal land description
 
+# shapefile: If only a single shapefile defines the site, enter the name of the shapefile. If multiple shapefiles, enter a list with all shapefile names
+# site_ID: enter the four letter site code
+# pcode: project code
+# sample_size: number of desired base sample grids, if entered will override calculated 20%
+# overdraw_size:  number of desired overdraw grids, if entered will override calculated 1/4 of sample size
 
-#temp input values to test function
-shapefile = "HandHillER"
-shapefile = "AndersonNorthLease"
-shapefile = "dundurn"
-shapefile = "hole_in_the_wall"
-shapefile = list("AndersonNorthLease", "AndersonSouthLease")
-shapefile = "manitou"
-site_ID = "SMAN"
-pcode = "GBM"
-sample_size = NULL
-overdraw_size = NULL
 grts_GBMP <- function(shapefile,
                       site_ID, 
                       pcode, 
                       sample_size = NULL, 
                       overdraw_size = NULL)  { 
    
-  
 #Load packages; required packages will be automatically installed and loaded
   source("Functions/InstallLoadPackages.R")
   using(
@@ -299,7 +292,7 @@ grts_GBMP <- function(shapefile,
     if(site_type == "small") {
       n.over = 0
     } else {
-      n.over <- ceiling(0.25*N)
+      n.over <- ceiling(0.25*n)
     }
   } else {
     n.over <- overdraw_size
@@ -628,22 +621,3 @@ map_interactive <- tm_shape(site) + tm_borders(col = "black",lwd = 3) +
   #o output of number of grids and render map
   return(list(map_interactive, grids))
 }
-
-
-
-
-
-# shapefile: enter the name of the shapefile, not including the suffix .shp
-# site_name_2: if the boundary includes another shapefile
-# site_ID: enter the four letter site code
-# pcode: project code
-# sample_size: number of desired base sample grids, if entered will override calculated 20%
-# overdraw_size:  number of desired overdraw grids, if entered will override calculated 1/4 of sample size
-
-grts_GBMP(site_name = "masefield",
-          site_name_2 = NULL,
-          site_ID = "SMAS", 
-          pcode = "GBMP",
-          sample_size = 10,
-          overdraw_size = 5)
-
