@@ -12,6 +12,9 @@
 # NOTE: delete the entire output folder before rerunning to ensure everything is properly exported
 
 source("Functions/GRTS_Function.R")
-AHHL <- grts_GBMP(shapefile = "HandHillER",
-                  site_ID = "AHHL",
+newSite <- grts_GBMP(shapefile = "StrattonPeake_Dorothy",
+                  site_ID = "ASPD",
                   pcode = "GBM")
+
+#view interavtive map to look at the sample
+newSite[1]
